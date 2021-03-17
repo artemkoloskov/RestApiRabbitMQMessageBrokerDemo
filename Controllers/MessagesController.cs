@@ -19,8 +19,6 @@ namespace RestApiRabbitMQMessageBrokerDemo.Controllers
 		private readonly string _hostMame;
 		private readonly string _queueName;
 
-		private List<Message> rabbitQueue = new();
-
 		public MessagesController(ILogger<MessagesController> logger, IMessageReceiver messageReceiver, IConfiguration configuration)
 		{
 			_configuration = configuration;

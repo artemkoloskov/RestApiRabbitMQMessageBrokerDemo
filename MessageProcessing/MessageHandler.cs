@@ -18,8 +18,8 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 	{
 		private IModel _channel;
 		private IConnection _connection;
-		private IConfiguration _configuration;
- 		private IMessageReceiver _messageReceiver;
+		private readonly IConfiguration _configuration;
+ 		private readonly IMessageReceiver _messageReceiver;
 		private readonly string _hostMame;
 		private readonly string _queueName;
 
@@ -89,7 +89,7 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 		/// Приписывает к сообщению, что оно обработано и количество точек.
 		/// </summary>
 		/// <param name="message"></param>
-		private void HandleMessage(Message message)
+		private static void HandleMessage(Message message)
 		{
 			int dots = message.Body.Split('.').Length - 1;
 
