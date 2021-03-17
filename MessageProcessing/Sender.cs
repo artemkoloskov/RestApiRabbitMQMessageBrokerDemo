@@ -6,6 +6,9 @@ using RestApiRabbitMQMessageBrokerDemo.Domain;
 
 namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 {
+	/// <summary>
+	/// Объект отправляющий сообщения в очередь RabbitMQ.
+	/// </summary>
 	public class Sender
 	{
 		private readonly string _hostName;
@@ -58,7 +61,7 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"Не удалось создать подключиться: {ex.Message}");
+				Console.WriteLine($"Не удалось создать подключение: {ex.Message}");
 			}
 		}
 

@@ -1,8 +1,8 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -10,26 +10,37 @@ using RestApiRabbitMQMessageBrokerDemo.Domain;
 
 namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 {
-	public class Receiver : BackgroundService
+	/// <summary>
+	/// Бэкгрунд сервис слушающий очередь RabbitMQ, и обрабатывающий сообщения
+	/// из нее, при поступлении
+	/// </summary>
+	public class MessageHandler : BackgroundService
 	{
 		private IModel _channel;
 		private IConnection _connection;
-		private IMessageReceiver _messageReceiver;
-		private readonly string _hostname = "localhost";
-		private readonly string _queueName = "restQueue";
+		private IConfiguration _configuration;
+ 		private IMessageReceiver _messageReceiver;
+		private readonly string _hostMame;
+		private readonly string _queueName;
 
-		public Receiver(IMessageReceiver messageReceiver)
+		public MessageHandler(IMessageReceiver messageReceiver, IConfiguration configuration)
 		{
 			_messageReceiver = messageReceiver;
+
+			_configuration = configuration;
+
+			_hostMame = _configuration["HostName"];
+			
+			_queueName = _configuration["QueueName"];
 
 			InitializeListener();
 		}
 
 		private void InitializeListener()
 		{
-			ConnectionFactory factory = new ConnectionFactory
+			ConnectionFactory factory = new()
 			{
-				HostName = _hostname
+				HostName = _hostMame
 			};
 
 			_connection = factory.CreateConnection();
@@ -48,7 +59,7 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 		{
 			stoppingToken.ThrowIfCancellationRequested();
 
-			EventingBasicConsumer consumer = new EventingBasicConsumer(_channel);
+			EventingBasicConsumer consumer = new(_channel);
 
 			consumer.Received += (ch, ea) =>
 			{
@@ -72,13 +83,19 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 			return Task.CompletedTask;
 		}
 
+		/// <summary>
+		/// "Обработка сообщения". Подсчитывает количество точек в сообщении, и 
+		/// задеоживается на такое количество секунд, для симуляции обработки. 
+		/// Приписывает к сообщению, что оно обработано и количество точек.
+		/// </summary>
+		/// <param name="message"></param>
 		private void HandleMessage(Message message)
 		{
 			int dots = message.Body.Split('.').Length - 1;
 
 			Thread.Sleep(dots * 1000);
 
-			message.Body = $"Сообщение обработано: {message.Body.Replace(".", "")}, {dots}";
+			message.Body = $"Сообщение обработано: {message.Body.Replace(".", "")}, {dots} точек";
 		}
 
 		public override void Dispose()

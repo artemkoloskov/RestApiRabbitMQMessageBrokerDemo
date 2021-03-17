@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace RestApiRabbitMQMessageBrokerDemo.Domain
+﻿namespace RestApiRabbitMQMessageBrokerDemo.Domain
 {
+	/// <summary>
+	/// Объект ответа на REST запрос. Содержит обработанное сообщение и время, которое
+	/// ушло на его обработку
+	/// </summary>
 	public class Response
 	{
 		public Message Message { get; set; }

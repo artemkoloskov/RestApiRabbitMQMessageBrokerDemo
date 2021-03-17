@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RestApiRabbitMQMessageBrokerDemo.Domain;
 using RestApiRabbitMQMessageBrokerDemo.MessageProcessing;
@@ -16,48 +14,44 @@ namespace RestApiRabbitMQMessageBrokerDemo.Controllers
 	{
 		private readonly ILogger<MessagesController> _logger;
 		private readonly IMessageReceiver _messageReceiver;
-		private readonly Sender _sender = new Sender("localhost", "restQueue");
+		private readonly Sender _sender = new("localhost", "restQueue");
+		private readonly IConfiguration _configuration;
+		private readonly string _hostMame;
+		private readonly string _queueName;
 
 		private List<Message> rabbitQueue = new();
 
-		public MessagesController(ILogger<MessagesController> logger, IMessageReceiver messageReceiver)
+		public MessagesController(ILogger<MessagesController> logger, IMessageReceiver messageReceiver, IConfiguration configuration)
 		{
+			_configuration = configuration;
+
 			_logger = logger;
 
+			_hostMame = _configuration["HostName"];
+
+			_queueName = _configuration["QueueName"];
+
+			_sender = new(_hostMame, _queueName);
+
 			_messageReceiver = messageReceiver;
-		}
 
-		[HttpGet]
-		public IEnumerable<Message> Get()
-		{
-			if (rabbitQueue.Count() > 0)
-			{
-				return rabbitQueue.ToArray();
-			}
-			else
-			{
-				Random rng = new Random();
-
-				return Enumerable.Range(1, 5).Select(index =>
-				new Message($"{rng.Next(5000)}"))
-				.ToArray();
-			}
+			_messageReceiver.HandledMessage = null;
 		}
 
 		[HttpPost]
 		public IActionResult SendMessage([FromBody] Message message)
 		{
-			DateTime processingStartTime = DateTime.Now;
-
-			_messageReceiver.HandledMessage = null;
+			DateTime handlingStartTime = DateTime.Now;
 
 			_sender.SendMessage(message);
 
-			TimeSpan timeToHandle = DateTime.Now - processingStartTime;
+			TimeSpan timeToHandle = DateTime.Now - handlingStartTime;
 
-			while (_messageReceiver.HandledMessage is null && timeToHandle.TotalMilliseconds < 10000)
+			while (
+				_messageReceiver.HandledMessage is null && 
+				timeToHandle.TotalMilliseconds < double.Parse(_configuration["MessageHandlingTimeout"]))
 			{
-				timeToHandle = DateTime.Now - processingStartTime;
+				timeToHandle = DateTime.Now - handlingStartTime;
 			}
 
 			if (_messageReceiver.HandledMessage is null)
@@ -65,8 +59,9 @@ namespace RestApiRabbitMQMessageBrokerDemo.Controllers
 				return StatusCode(408);
 			}
 
-			timeToHandle = DateTime.Now - processingStartTime;
-				Response response = new() { Message = _messageReceiver.HandledMessage, TimeToHandle = timeToHandle.TotalMilliseconds/1000 };
+			timeToHandle = DateTime.Now - handlingStartTime;
+			
+			Response response = new() { Message = _messageReceiver.HandledMessage, TimeToHandle = timeToHandle.TotalSeconds };
 
 			return Ok(response);
 		}
