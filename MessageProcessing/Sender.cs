@@ -6,72 +6,72 @@ using RestApiRabbitMQMessageBrokerDemo.Domain;
 
 namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 {
-    public class Sender
-    {
-        private readonly string _hostName;
-        private readonly string _queueName;
+	public class Sender
+	{
+		private readonly string _hostName;
+		private readonly string _queueName;
 
-        private IConnection _connection;
+		private IConnection _connection;
 
-        public Sender(string hostName, string queueName)
-        {
-            _queueName = queueName;
-            _hostName = hostName;
+		public Sender(string hostName, string queueName)
+		{
+			_queueName = queueName;
+			_hostName = hostName;
 
-            CreateConnection();
-        }
+			CreateConnection();
+		}
 
-        public void SendMessage(Message message)
-        {
-            if (ConnectionExists())
-            {
-                using IModel channel = _connection.CreateModel();
+		public void SendMessage(Message message)
+		{
+			if (ConnectionExists())
+			{
+				using IModel channel = _connection.CreateModel();
 
-                channel.QueueDeclare(
-                    queue: _queueName,
-                    durable: false,
-                    exclusive: false,
-                    autoDelete: false,
-                    arguments: null);
+				channel.QueueDeclare(
+					queue: _queueName,
+					durable: false,
+					exclusive: false,
+					autoDelete: false,
+					arguments: null);
 
-                var json = JsonSerializer.Serialize(message);
-                var body = Encoding.UTF8.GetBytes(json);
+				string json = JsonSerializer.Serialize(message);
+				byte[] body = Encoding.UTF8.GetBytes(json);
 
-                channel.BasicPublish(
-                    exchange: "",
-                    routingKey: _queueName,
-                    basicProperties: null,
-                    body: body);
-            }
-        }
+				channel.BasicPublish(
+					exchange: "",
+					routingKey: _queueName,
+					basicProperties: null,
+					body: body);
+			}
+		}
 
-        private void CreateConnection()
-        {
-            try
-            {
-                ConnectionFactory factory = new()
-                {
-                    HostName = _hostName
-                };
+		private void CreateConnection()
+		{
+			try
+			{
+				ConnectionFactory factory = new()
+				{
+					HostName = _hostName
+				};
 
-                _connection = factory.CreateConnection();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Не удалось создать подключиться: {ex.Message}");
-            }
-        }
+				_connection = factory.CreateConnection();
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Не удалось создать подключиться: {ex.Message}");
+			}
+		}
 
-        private bool ConnectionExists()
-        {
-            if (_connection != null)
-            {
-                return true;
-            }
+		private bool ConnectionExists()
+		{
+			if (_connection != null)
+			{
+				return true;
+			}
 
-            CreateConnection();
+			CreateConnection();
 
-            return _connection != null;
-        }
-    }
+			return _connection != null;
+		}
+	}
 }
