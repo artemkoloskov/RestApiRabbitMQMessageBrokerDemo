@@ -15,13 +15,16 @@ namespace RestApiRabbitMQMessageBrokerDemo.Controllers
 	public class MessagesController : ControllerBase
 	{
 		private readonly ILogger<MessagesController> _logger;
+		private readonly IMessageReceiver _messageReceiver;
 		private readonly Sender _sender = new Sender("localhost", "restQueue");
 
 		private List<Message> rabbitQueue = new();
 
-		public MessagesController(ILogger<MessagesController> logger)
+		public MessagesController(ILogger<MessagesController> logger, IMessageReceiver messageReceiver)
 		{
 			_logger = logger;
+
+			_messageReceiver = messageReceiver;
 		}
 
 		[HttpGet]
@@ -46,13 +49,26 @@ namespace RestApiRabbitMQMessageBrokerDemo.Controllers
 		{
 			DateTime processingStartTime = DateTime.Now;
 
+			_messageReceiver.HandledMessage = null;
+
 			_sender.SendMessage(message);
 
-			Thread.Sleep(new Random().Next(5000));
+			TimeSpan timeToHandle = DateTime.Now - processingStartTime;
 
-			TimeSpan processingTime = DateTime.Now - processingStartTime;
+			while (_messageReceiver.HandledMessage is null && timeToHandle.TotalMilliseconds < 10000)
+			{
+				timeToHandle = DateTime.Now - processingStartTime;
+			}
 
-			return Ok(processingTime.TotalSeconds);
+			if (_messageReceiver.HandledMessage is null)
+			{
+				return StatusCode(408);
+			}
+
+			timeToHandle = DateTime.Now - processingStartTime;
+				Response response = new() { Message = _messageReceiver.HandledMessage, TimeToHandle = timeToHandle.TotalMilliseconds/1000 };
+
+			return Ok(response);
 		}
 	}
 }

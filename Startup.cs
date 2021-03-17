@@ -34,6 +34,8 @@ namespace RestApiRabbitMQMessageBrokerDemo
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "RestApiRabbitMQMessageBrokerDemo", Version = "v1" });
 			});
 
+			services.AddSingleton<IMessageReceiver, MessageReceiver>();
+
 			services.AddHostedService<Receiver>();
 		}
 

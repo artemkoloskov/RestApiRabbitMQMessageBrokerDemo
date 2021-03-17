@@ -14,11 +14,14 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 	{
 		private IModel _channel;
 		private IConnection _connection;
+		private IMessageReceiver _messageReceiver;
 		private readonly string _hostname = "localhost";
 		private readonly string _queueName = "restQueue";
 
-		public Receiver()
+		public Receiver(IMessageReceiver messageReceiver)
 		{
+			_messageReceiver = messageReceiver;
+
 			InitializeListener();
 		}
 
@@ -53,6 +56,8 @@ namespace RestApiRabbitMQMessageBrokerDemo.MessageProcessing
 				Message messageFromQueue = JsonSerializer.Deserialize<Message>(content);
 
 				HandleMessage(messageFromQueue);
+
+				_messageReceiver.HandledMessage = messageFromQueue;
 
 				_channel.BasicAck(
 					deliveryTag: ea.DeliveryTag,
